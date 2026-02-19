@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Connect 4</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .disc {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: #bfdbfe;
+      }
+      .R {
+        background: #ef4444;
+      }
+      .Y {
+        background: #eab308;
+      }
+      .G {
+        background: #22c55e;
+      }
+      .B {
+        background: #3b82f6;
+      }
+      .P {
+        background: #a855f7;
+      }
+      .O {
+        background: #f97316;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-slate-900 min-h-screen flex flex-col items-center py-10 font-sans"
+  >
+    <h1 class="text-4xl font-bold text-white mb-6">Connect 4</h1>
+
+    {% if message %}
+    <div
+      class="bg-red-500/20 text-red-300 border border-red-500/40 rounded-lg px-4 py-2 mb-4 text-sm font-medium"
+    >
+      {{ message }}
+    </div>
+    {% endif %}
+
+    <!-- управление -->
+    <div class="flex items-center gap-4 mb-6 flex-wrap justify-center">
+      <!-- размеры -->
+      <form method="post" class="flex items-center gap-2">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="set_size" />
+        <label class="text-slate-300 text-sm font-medium">Size:</label>
+        <input
+          type="number"
+          name="rows"
+          value="{{ rows }}"
+          min="{{ min_rows }}"
+          max="{{ max_rows }}"
+          class="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5 w-14 text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+          title="Rows ({{ min_rows }}–{{ max_rows }})"
+        />
+        <span class="text-slate-400 text-sm">×</span>
+        <input
+          type="number"
+          name="cols"
+          value="{{ cols }}"
+          min="{{ min_cols }}"
+          max="{{ max_cols }}"
+          class="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5 w-14 text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+          title="Cols ({{ min_cols }}–{{ max_cols }})"
+        />
+        <button
+          type="submit"
+          class="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
+        >
+          Set
+        </button>
+      </form>
+
+      <!-- колво игроков -->
+      <form method="post" class="flex items-center gap-2">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="set_players" />
+        <label for="num_players" class="text-slate-300 text-sm font-medium"
+          >Players:</label
+        >
+        <select
+          name="num_players"
+          id="num_players"
+          class="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {% for n in player_counts %}
+          <option
+            value="{{ n }}"
+            {%
+            if
+            players|length=""
+            ="n"
+            %}selected{%
+            endif
+            %}
+          >
+            {{ n }}
+          </option>
+          {% endfor %}
+        </select>
+        <button
+          type="submit"
+          class="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
+        >
+          Set
+        </button>
+      </form>
+
+      <!-- победитель -->
+      {% if winner %}
+      <div
+        class="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-full px-4 py-2"
+      >
+        <div
+          class="w-6 h-6 rounded-full ring-2 ring-white/40 shadow-lg"
+          style="background: {{ winner_color }}"
+        ></div>
+        <span class="font-bold text-yellow-300 text-sm"
+          >Player {{ winner }} wins!</span
+        >
+      </div>
+      {% else %}
+      <div
+        class="flex items-center gap-2 bg-slate-700/60 border border-slate-600 rounded-full px-4 py-2 shadow-sm"
+      >
+        <div
+          class="w-6 h-6 rounded-full ring-2 ring-white/30 shadow-md animate-pulse"
+          style="background: {{ turn_color }}"
+        ></div>
+        <span class="text-slate-300 text-sm"
+          >Player <span class="font-bold text-white">{{ turn }}</span>'s
+          turn</span
+        >
+      </div>
+      {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="restart" />
+        <button
+          type="submit"
+          class="bg-slate-600 hover:bg-slate-500 active:bg-slate-700 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
+        >
+          Restart
+        </button>
+      </form>
+    </div>
+
+    <!-- Доска -->
+    <div class="flex flex-col items-center">
+      <!-- ход -->
+      <div class="flex mb-1.5" style="gap: 4px">
+        {% for c in cols_range %}
+        <form method="post" style="width: 56px; text-align: center">
+          {% csrf_token %}
+          <input type="hidden" name="col" value="{{ c }}" />
+          <button
+            type="submit"
+            {%
+            if
+            winner
+            %}disabled{%
+            endif
+            %}
+            class="w-full py-1.5 rounded-lg text-sm font-bold text-white transition-all bg-blue-500/60 hover:bg-blue-400 hover:scale-110 hover:shadow-lg disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
+          >
+            &#9660;
+          </button>
+        </form>
+        {% endfor %}
+      </div>
+
+      <!-- Клетки -->
+      <div
+        class="rounded-2xl p-2 shadow-2xl"
+        style="background: #1e40af; display: inline-block"
+      >
+        <table class="border-separate" style="border-spacing: 4px">
+          {% for row in board %}
+          <tr>
+            {% for cell in row %}
+            <td style="padding: 0">
+              <div
+                class="disc {% if cell %}{{ cell }}{% endif %} shadow-inner"
+              ></div>
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+    </div>
+  </body>
+</html>
