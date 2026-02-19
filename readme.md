@@ -2,13 +2,14 @@
 
 ## Running the Project
 
-### Option 1: Docker Compose (recommended)
+### Option 1: Docker Compose (recommended)  *
 
 ```bash
 docker compose up
 ```
 
 The app will be available at http://localhost:8000.
+First run might take longer to create db file.
 
 ### Option 2: Local (runserver)
 
